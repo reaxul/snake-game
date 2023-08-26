@@ -6,27 +6,36 @@ pygame.init()
 
 # Set up screen dimensions
 WIDTH, HEIGHT = 400, 400
-GRID_SIZE = 20  # Size of each grid cell
+GRID_SIZE = 20
 GRID_WIDTH = WIDTH // GRID_SIZE
 GRID_HEIGHT = HEIGHT // GRID_SIZE
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Pygame Snake Game")
+pygame.display.set_caption("Reazul's Snake Game")
 
-# Colors
+# Define colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
-HEAD_COLOR = (41, 128, 185)  # Head color (Turquoise)
-BODY_COLOR = (39, 174, 96)   # Body color (Emerald)
-FOOD_COLOR = (192, 57, 43)   # Food color (Pomegranate)
-GAME_OVER_COLOR = (231, 76, 60)  # Game over text color (Alizarin)
+HEAD_COLOR = (41, 128, 185)  # Turquoise or another bright color
+BODY_COLOR = (39, 174, 96)   # Green or another color that contrasts well
+FOOD_COLOR = (192, 57, 43)   # Red or another color that stands out
+GAME_OVER_COLOR = (231, 76, 60)
+
+# Load fonts
+font = pygame.font.Font(None, 24)
+large_font = pygame.font.Font(None, 36)
+
+# Load background image
+background = pygame.image.load("background.jpg")
+background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+screen.blit(background, (0, 0))
 
 # Snake and food positions
 snake = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
 food = (random.randrange(0, GRID_WIDTH), random.randrange(0, GRID_HEIGHT))
 
 # Direction
-direction = (1, 0)  # Start moving right
+direction = (1, 0)
 
 # Game states
 initial_screen = True
@@ -34,7 +43,14 @@ playing = False
 paused = False
 game_over = False
 clock = pygame.time.Clock()
-frame_rate = 10  # Adjust this value for slower or faster movement
+frame_rate = 6
+
+# Draw grid lines
+for x in range(0, WIDTH, GRID_SIZE):
+    pygame.draw.line(screen, BLACK, (x, 0), (x, HEIGHT))
+for y in range(0, HEIGHT, GRID_SIZE):
+    pygame.draw.line(screen, BLACK, (0, y), (WIDTH, y))
+
 
 while initial_screen:
     for event in pygame.event.get():
@@ -44,11 +60,9 @@ while initial_screen:
             playing = True
             initial_screen = False
     
-    screen.fill(BLACK)
-    font = pygame.font.Font(None, 24)
-    large_font = pygame.font.Font(None, 36)
-    # Display instructions and play button
+    screen.blit(background, (0, 0))
     
+    # Display instructions and play button
     instructions = [
         "Welcome to the Snake Game!",
         "Use arrow keys to control the snake.",
@@ -56,11 +70,11 @@ while initial_screen:
         "Eat the food to grow and score points."
     ]
     for idx, line in enumerate(instructions):
-        text = font.render(line, True, WHITE)
-        text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 70 + idx * 40))
+        text = font.render(line, True, BLACK)
+        text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 100 + idx * 40))
         screen.blit(text, text_rect)
     
-    play_button = pygame.Rect(WIDTH // 2 - 50, HEIGHT // 2 + 40, 100, 50)
+    play_button = pygame.Rect(WIDTH // 2 - 60, HEIGHT // 2 + 40, 120, 60)
     pygame.draw.rect(screen, GREEN, play_button)
     play_text = large_font.render("Play", True, BLACK)
     play_text_rect = play_text.get_rect(center=play_button.center)
@@ -90,12 +104,18 @@ while playing:
             elif event.key == pygame.K_RIGHT and prev_direction != (-1, 0):  # Prevent moving left
                 direction = (1, 0)
     
-    
     if not paused and not game_over:
         # Clear the screen
-        screen.fill(BLACK)
+        screen.blit(background, (0, 0))
+
+         # Draw grid lines
+        for x in range(0, WIDTH, GRID_SIZE):
+            pygame.draw.line(screen, WHITE, (x, 0), (x, HEIGHT))
+        for y in range(0, HEIGHT, GRID_SIZE):
+            pygame.draw.line(screen, WHITE, (0, y), (WIDTH, y))
+
         
-        # Update snake position
+        # Update snake position and growth
         keys = pygame.key.get_pressed()
         if keys[pygame.K_UP]:
             direction = (0, -1)
@@ -119,29 +139,42 @@ while playing:
         
         # Check if snake ate the food
         if snake[0] == food:
-            food = (random.randrange(0, GRID_WIDTH), random.randrange(0, GRID_HEIGHT))  # Place new food
+            food = (random.randrange(0, GRID_WIDTH), random.randrange(0, GRID_HEIGHT))
         else:
-            snake.pop()  # Remove the tail segment
+            snake.pop()
         
-        # Draw snake
+        # Draw snake with gradient colors and texture
         for index, segment in enumerate(snake):
+            rect = pygame.Rect(segment[0] * GRID_SIZE, segment[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE)
             if index == 0:
-                pygame.draw.rect(screen, HEAD_COLOR, pygame.Rect(segment[0] * GRID_SIZE, segment[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+                pygame.draw.rect(screen, HEAD_COLOR, rect)
             else:
-                pygame.draw.rect(screen, BODY_COLOR, pygame.Rect(segment[0] * GRID_SIZE, segment[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+                color_percentage = index / len(snake)
+                gradient_color = (
+                    int(HEAD_COLOR[0] * (1 - color_percentage) + BODY_COLOR[0] * color_percentage),
+                    int(HEAD_COLOR[1] * (1 - color_percentage) + BODY_COLOR[1] * color_percentage),
+                    int(HEAD_COLOR[2] * (1 - color_percentage) + BODY_COLOR[2] * color_percentage)
+                )
+                pygame.draw.rect(screen, gradient_color, rect)
+                
+                # Draw a simple texture pattern (scales)
+                scale_texture = pygame.Surface((GRID_SIZE, GRID_SIZE))
+                for y in range(0, GRID_SIZE, 2):
+                    for x in range(GRID_SIZE):
+                        pygame.draw.rect(scale_texture, (0, 0, 0), (x, y, 1, 1))
+                screen.blit(scale_texture, rect)
         
         # Draw food
-        pygame.draw.rect(screen, FOOD_COLOR, pygame.Rect(food[0] * GRID_SIZE, food[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+        food_rect = pygame.Rect(food[0] * GRID_SIZE, food[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE)
+        pygame.draw.rect(screen, FOOD_COLOR, food_rect)
     
     if game_over:
-        # Display "Game Over" message with animation
+        # Display "Game Over" message and restart instructions
         screen.fill(GAME_OVER_COLOR)
-        font = pygame.font.Font(None, 36)
-        game_over_text = font.render("Game Over", True, BLACK)
-        text_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-        screen.blit(game_over_text, text_rect)
+        game_over_text = large_font.render("Game Over", True, BLACK)
+        game_over_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(game_over_text, game_over_rect)
         
-        # Display restart instructions
         restart_text = font.render("Press 'R' to restart", True, BLACK)
         restart_rect = restart_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 40))
         screen.blit(restart_text, restart_rect)
